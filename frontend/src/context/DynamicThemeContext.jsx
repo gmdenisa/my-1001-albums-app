@@ -1,3 +1,4 @@
+// src/context/DynamicThemeContext.jsx
 import React, { createContext, useState, useContext, useCallback } from 'react';
 
 const DynamicThemeContext = createContext();
@@ -31,9 +32,10 @@ const hslToRgb = (h, s, l) => {
 export const ThemeProvider = ({ children }) => {
   const [themeConfig, setThemeConfig] = useState({
     mainColor: '#1a1a1a',
-    secondaryColor: '#fcfcfc',
+    secondaryColor: '#2a2a2a', 
+    menuColor: 'rgba(5, 5, 5, 0.85)', // Added default menu color
     mainTextColor: '#ffffff',
-    secondaryTextColor: '#1a1a1a',
+    secondaryTextColor: '#ffffff', 
     currentImage: ''
   });
 
@@ -51,13 +53,10 @@ export const ThemeProvider = ({ children }) => {
       ctx.drawImage(img, 0, 0, 64, 64);
       const data = ctx.getImageData(0, 0, 64, 64).data;
 
-      // Group colors into 36 "buckets" (10 degrees of Hue each)
       const hueBins = new Array(36).fill(0).map(() => ({ count: 0, hSum: 0, sSum: 0, lSum: 0 }));
 
       for (let i = 0; i < data.length; i += 4) {
         const [h, s, l] = rgbToHsl(data[i], data[i+1], data[i+2]);
-        
-        // Ignore muddy grays and pure black/white to find the true thematic color
         if (l > 15 && l < 85 && s > 15) {
           const binIndex = Math.floor(h / 10) % 36;
           hueBins[binIndex].count++;
@@ -67,7 +66,6 @@ export const ThemeProvider = ({ children }) => {
         }
       }
 
-      // Find the bucket with the most pixels (The Dominant Color)
       let dominantBin = hueBins[0];
       for (let i = 1; i < hueBins.length; i++) {
         if (hueBins[i].count > dominantBin.count) {
@@ -84,19 +82,28 @@ export const ThemeProvider = ({ children }) => {
         };
       }
 
-      // Relaxed clamping limits to let the true color shine through
+      // 1. MAIN COLOR (Title Card)
       const finalS = Math.max(20, Math.min(bestColor.s, 60)); 
       const finalL = Math.max(30, Math.min(bestColor.l, 50)); 
-
       const mainRGB = hslToRgb(bestColor.h, finalS, finalL);
-      const paperRGB = hslToRgb(bestColor.h, 10, 96); 
+
+      // 2. SECONDARY COLOR (Wiki Card - Lighter/Darker based on main)
+      const secondaryL = finalL < 40 ? finalL + 15 : finalL - 15;
+      const secondaryS = finalS * 0.8; 
+      const secondaryRGB = hslToRgb(bestColor.h, secondaryS, secondaryL);
+
+      // 3. MENU COLOR (Deep, rich dark version of the main color)
+      const menuL = Math.max(8, finalL - 25); 
+      const menuRGB = hslToRgb(bestColor.h, finalS, menuL);
 
       setThemeConfig({
         currentImage: imageUrl,
         mainColor: `rgb(${mainRGB.join(',')})`,
-        secondaryColor: `rgb(${paperRGB.join(',')})`,
+        secondaryColor: `rgb(${secondaryRGB.join(',')})`,
+        // Outputting as RGBA so the blur effect still bleeds through!
+        menuColor: `rgba(${menuRGB[0]}, ${menuRGB[1]}, ${menuRGB[2]}, 0.85)`, 
         mainTextColor: '#ffffff',
-        secondaryTextColor: '#121212',
+        secondaryTextColor: '#ffffff', 
       });
     };
   }, [themeConfig.currentImage]);
