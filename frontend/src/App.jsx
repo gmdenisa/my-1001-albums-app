@@ -5,9 +5,9 @@ import { ThemeProvider } from './context/DynamicThemeContext';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import HistoryPage from './pages/HistoryPage';
+import StatsPage from './pages/StatsPage';
 
-// Dummy components for other pages
-const HistoryPage = () => <div className="p-10 text-white">History is coming soon!</div>;
 const SettingsPage = () => <div className="p-10 text-white">Settings are coming soon!</div>;
 
 function App() {
@@ -21,14 +21,18 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }>
+
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<HomePage />} />
             <Route path="history" element={<HistoryPage />} />
+            <Route path="stats" element={<StatsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
