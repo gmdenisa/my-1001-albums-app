@@ -6,6 +6,7 @@ import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import HistoryPage from './pages/HistoryPage';
+import StatsPage from './pages/StatsPage'
 
 // Dummy components for other pages
 const SettingsPage = () => <div className="p-10 text-white">Settings are coming soon!</div>;
