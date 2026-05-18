@@ -1,9 +1,8 @@
-// src/layouts/MainLayout.jsx
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/DynamicThemeContext';
 import { useFetchOriginalData } from '../hooks/useFetchOriginalData';
-import { Disc, History, Settings, ExternalLink, LogOut } from 'lucide-react';
+import { Disc, History, Settings, ExternalLink, LogOut, BarChart2 } from 'lucide-react';
 
 const MainLayout = () => {
   const { themeConfig } = useTheme();
@@ -24,20 +23,20 @@ const MainLayout = () => {
   };
 
   const navItems = [
-    { to: '/', icon: <Disc size={20} />, label: 'Today' },
-    { to: '/history', icon: <History size={20} />, label: 'History' },
-    { to: '/settings', icon: <Settings size={20} />, label: 'Settings' },
+    { to: "/",         icon: <Disc size={24} />,      label: "Today"    },
+    { to: "/history",  icon: <History size={24} />,   label: "History"  },
+    { to: "/stats",    icon: <BarChart2 size={24} />, label: "Stats"    },
+    { to: "/settings", icon: <Settings size={24} />,  label: "Settings" },
   ];
 
   return (
-    <div className="flex h-screen w-full relative overflow-hidden bg-black font-sans">
+    <div className="flex h-screen w-full relative overflow-hidden bg-[#0e0e10] font-sans">
 
-      {/* ── SIDEBAR ─────────────────────────────────────────────── */}
+      {/* FIXED LEFT SIDEBAR */}
       <nav
         className="w-20 shrink-0 h-full z-20 flex flex-col justify-between py-10 items-center border-r border-white/5 shadow-2xl transition-colors duration-1000"
         style={{ backgroundColor: themeConfig.menuColor || '#0a0a0a' }}
       >
-
         {/* Top: rank badge + nav */}
         <div className="flex flex-col items-center w-full">
           <div className="mb-16">
@@ -75,7 +74,6 @@ const MainLayout = () => {
         {/* Bottom: external link + logout */}
         <div className="flex flex-col items-center gap-6">
           <ExternalLink
-          
             size={18}
             className="text-white/30 hover:text-white transition-colors cursor-pointer"
           />
@@ -87,10 +85,9 @@ const MainLayout = () => {
             <LogOut size={18} />
           </button>
         </div>
-
       </nav>
 
-      {/* ── CONTENT ─────────────────────────────────────────────── */}
+      {/* CONTENT AREA */}
       <main className="flex-1 h-full z-10 overflow-hidden relative">
         <Outlet />
       </main>
