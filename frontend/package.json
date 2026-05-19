@@ -18,6 +18,7 @@
     "dotenv": "^17.4.2",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.16.0",
+    "node-vibrant": "^4.0.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1"

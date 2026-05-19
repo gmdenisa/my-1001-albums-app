@@ -1,3 +1,4 @@
+// src/layouts/MainLayout.jsx
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/DynamicThemeContext';
@@ -12,8 +13,6 @@ const MainLayout = () => {
   const projectId = localStorage.getItem('project_id');
   const { data } = useFetchOriginalData(projectId);
 
-  // Rank = number of already-listened albums + 1
-  // The history array contains past albums; current is the next one
   const albumRank = data?.history ? data.history.length + 1 : '—';
 
   const handleLogout = () => {
@@ -23,10 +22,10 @@ const MainLayout = () => {
   };
 
   const navItems = [
-    { to: "/",         icon: <Disc size={24} />,      label: "Today"    },
-    { to: "/history",  icon: <History size={24} />,   label: "History"  },
-    { to: "/stats",    icon: <BarChart2 size={24} />, label: "Stats"    },
-    { to: "/settings", icon: <Settings size={24} />,  label: "Settings" },
+    { to: '/',         icon: <Disc size={22} />,      label: 'Today'    },
+    { to: '/history',  icon: <History size={22} />,   label: 'History'  },
+    { to: '/stats',    icon: <BarChart2 size={22} />, label: 'Stats'    },
+    { to: '/settings', icon: <Settings size={22} />,  label: 'Settings' },
   ];
 
   return (
@@ -34,36 +33,49 @@ const MainLayout = () => {
 
       {/* FIXED LEFT SIDEBAR */}
       <nav
-        className="w-20 shrink-0 h-full z-20 flex flex-col justify-between py-10 items-center border-r border-white/5 shadow-2xl transition-colors duration-1000"
-        style={{ backgroundColor: themeConfig.menuColor || '#0a0a0a' }}
+        className="w-20 shrink-0 h-full z-20 flex flex-col justify-between py-10 items-center transition-colors duration-1000"
+        style={{
+          backgroundColor: themeConfig.menuColor || '#0a0a0a',
+          boxShadow: '4px 0 32px rgba(0,0,0,0.5)',
+        }}
       >
         {/* Top: rank badge + nav */}
         <div className="flex flex-col items-center w-full">
-          <div className="mb-16">
+
+          {/* Rank badge */}
+          <div className="mb-14">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm shadow-lg transition-colors duration-1000 tabular-nums"
-              style={{ backgroundColor: themeConfig.mainColor, color: themeConfig.mainTextColor }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-lg transition-colors duration-1000 tabular-nums"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: '#ffffff',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
             >
               {albumRank}
             </div>
           </div>
 
-          <ul className="flex flex-col gap-10">
+          {/* Nav items */}
+          <ul className="flex flex-col gap-8">
             {navItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
                 <li key={item.to} title={item.label}>
                   <NavLink
                     to={item.to}
-                    className={`p-3 flex items-center justify-center rounded-2xl transition-all duration-300 ${
-                      isActive
-                        ? 'bg-white/10 scale-110 drop-shadow-md'
-                        : 'text-white/30 hover:text-white hover:scale-110'
-                    }`}
+                    className="p-2.5 flex items-center justify-center rounded-xl transition-all duration-200"
+                    style={{
+                      // Active: bright white + pill bg. Inactive: 70% white — clearly visible
+                      color: isActive ? '#ffffff' : 'rgba(255,255,255,0.70)',
+                      backgroundColor: isActive ? 'rgba(255,255,255,0.22)' : 'transparent',
+                      transform: isActive ? 'scale(1.15)' : 'scale(1)',
+                      filter: isActive ? 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' : 'none',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#ffffff'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'rgba(255,255,255,0.70)'; }}
                   >
-                    <div style={{ color: isActive ? themeConfig.mainColor : 'inherit' }}>
-                      {item.icon}
-                    </div>
+                    {item.icon}
                   </NavLink>
                 </li>
               );
@@ -72,15 +84,21 @@ const MainLayout = () => {
         </div>
 
         {/* Bottom: external link + logout */}
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-5">
           <ExternalLink
             size={18}
-            className="text-white/30 hover:text-white transition-colors cursor-pointer"
+            className="cursor-pointer transition-colors duration-200"
+            style={{ color: 'rgba(255,255,255,0.65)' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
           />
           <button
             onClick={handleLogout}
             title="Log out"
-            className="text-white/30 hover:text-red-400 transition-colors duration-200"
+            className="transition-colors duration-200"
+            style={{ color: 'rgba(255,255,255,0.65)' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgb(248,113,113)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
           >
             <LogOut size={18} />
           </button>

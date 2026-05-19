@@ -8,7 +8,8 @@ const Star = ({ fill }) => {
     <svg
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
-      className="w-4 h-4"
+      // ✅ Increased from w-4 h-4 to w-5 h-5 (or w-6 h-6 if you want them massive)
+      className="w-5 h-5"
     >
       <defs>
         <linearGradient id={gradientId}>
@@ -31,7 +32,8 @@ const Star = ({ fill }) => {
 const GlobalStars = ({ rating = 0 }) => {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-0.5 text-yellow-500">
+      {/* ✅ Removed 'text-yellow-500' so it naturally inherits the creamy white from the Title Card */}
+      <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((i) => {
           // Exact fill logic based on raw rating
           const fill = Math.max(0, Math.min(1, rating - (i - 1)));
@@ -39,7 +41,8 @@ const GlobalStars = ({ rating = 0 }) => {
         })}
       </div>
       
-      <span className="text-[11px] font-bold tracking-tighter text-white/40">
+      {/* ✅ Slightly bumped text size and opacity to match the bigger stars */}
+      <span className="text-[12px] font-bold tracking-tighter opacity-80">
         {rating}
       </span>
     </div>
