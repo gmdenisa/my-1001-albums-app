@@ -1,46 +1,47 @@
 // src/components/forms/MyReviewInput.jsx
-//
-// The 1001albumsgenerator public API has no POST endpoint for ratings/reviews.
-// So we:
-//   1. Save the review locally (localStorage) so it persists in your app
-//   2. On save, open the album's public review page on 1001albumsgenerator
-//      with the review text in the URL hash — click the bookmarklet to auto-fill.
-//
 import React, { useState, useEffect, useRef } from 'react';
 import { getAlbumReviewUrl } from '../../api/draftApi';
 
-const STORAGE_KEY = 'album_review_draft';
-
 const MOOD_TAGS = ['Timeless', 'Late Night', 'Formative', 'Overrated', 'Underrated', 'Haunting', 'Euphoric', 'Dense'];
 
-const StarRatingInput = ({ rating, setRating }) => {
+// Converts any color string to rgba
+const toRgba = (color, alpha) => {
+  if (!color) return `rgba(201,169,110,${alpha})`;
+  if (color.startsWith('rgba')) return color.replace(/[\d.]+\)$/, `${alpha})`);
+  if (color.startsWith('rgb')) return color.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+  const hex = color.replace('#', '');
+  const full = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
+  const r = parseInt(full.substring(0, 2), 16);
+  const g = parseInt(full.substring(2, 4), 16);
+  const b = parseInt(full.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+const StarRatingInput = ({ rating, setRating, accentColor }) => {
   const [hovered, setHovered] = useState(0);
   const labels = ['', 'Weak', 'Decent', 'Solid', 'Great', 'Masterpiece'];
+  const active = hovered || rating;
 
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-1" onMouseLeave={() => setHovered(0)}>
         {[1, 2, 3, 4, 5].map(i => {
-          const isActive = i <= (hovered || rating);
+          const isActive = i <= active;
           return (
             <button
               key={i}
               type="button"
               onClick={() => setRating(i === rating ? 0 : i)}
               onMouseEnter={() => setHovered(i)}
-              className={`transition-all duration-200 focus:outline-none ${
-                isActive
-                  ? 'text-[#c9a96e] scale-110 drop-shadow-sm'
-                  : 'text-gray-300 hover:text-gray-400 scale-100'
-              }`}
+              className="transition-all duration-200 focus:outline-none"
+              style={{
+                color: isActive ? accentColor : '#d1c9bd',
+                transform: isActive ? 'scale(1.15)' : 'scale(1)',
+              }}
             >
-              <svg
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                fill={isActive ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
+              <svg className="w-5 h-5" viewBox="0 0 24 24"
+                fill={isActive ? 'currentColor' : 'none'}
+                stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
@@ -48,95 +49,139 @@ const StarRatingInput = ({ rating, setRating }) => {
           );
         })}
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 w-24">
-        {labels[hovered || rating] || ''}
-      </span>
+      {active > 0 && (
+        <span className="text-[9px] font-black uppercase tracking-[0.25em]" style={{ color: accentColor }}>
+          {labels[active]}
+        </span>
+      )}
     </div>
   );
 };
 
-const MyReviewInput = ({ album }) => {
-  // album prop: { spotifyId, name } — passed from HomePage so we can build the review URL.
-  // Falls back gracefully if not provided.
+const MyReviewInput = ({ album, themeConfig = {} }) => {
+  const accentColor = themeConfig.mainColor || '#c9a96e';
+  const accentSoft  = toRgba(accentColor, 0.12);
+  const accentBorder= toRgba(accentColor, 0.35);
+  const accentGlow  = toRgba(accentColor, 0.18);
+
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
   const [activeTags, setActiveTags] = useState([]);
   const [saved, setSaved] = useState(false);
   const textareaRef = useRef(null);
 
-  // Restore draft from localStorage on mount
+  // Key drafts by spotifyId so each album has its own slot.
+  // When the album changes the effect re-runs: if there's a saved draft for
+  // the new album it restores it; otherwise everything resets to blank.
+  const storageKey = `album_review_draft_${album?.spotifyId || 'unknown'}`;
+
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const { reviewText: t, rating: r, activeTags: tags } = JSON.parse(stored);
-        if (t) setReviewText(t);
-        if (r) setRating(r);
-        if (tags) setActiveTags(tags);
+        setReviewText(t  ?? '');
+        setRating(r      ?? 0);
+        setActiveTags(tags ?? []);
+      } else {
+        // New album — start completely fresh
+        setReviewText('');
+        setRating(0);
+        setActiveTags([]);
       }
-    } catch { /* ignore */ }
-  }, []);
+    } catch {
+      setReviewText('');
+      setRating(0);
+      setActiveTags([]);
+    }
+  }, [storageKey]); // re-runs whenever the album changes
 
-  const toggleTag = (tag) => {
+  const toggleTag = (tag) =>
     setActiveTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     );
-  };
 
   const handleSave = () => {
     const tagLine = activeTags.length > 0 ? `[${activeTags.join(', ')}]\n` : '';
     const fullReview = tagLine + reviewText;
-
-    // Persist locally
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ reviewText, rating, activeTags }));
-
+    localStorage.setItem(storageKey, JSON.stringify({ reviewText, rating, activeTags }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
 
-    // Open the album's public review page on 1001albumsgenerator.
-    // If review text exists, encode it in the hash for the bookmarklet to pick up.
-    const spotifyId = album?.spotifyId;
-    const albumName = album?.name;
-    const baseUrl = getAlbumReviewUrl(spotifyId, albumName)
-      ?? `https://1001albumsgenerator.com/${localStorage.getItem('project_id') ?? ''}`;
-
-    const hash = reviewText.trim()
+    // Always open the project homepage — the bookmarklet can pick up the hash from there
+    const projectId = localStorage.getItem('project_id') ?? '';
+    const baseUrl   = `https://1001albumsgenerator.com/${projectId}`;
+    const hash      = reviewText.trim()
       ? `#review=${btoa(unescape(encodeURIComponent(fullReview.trim())))}`
       : '';
-
     window.open(baseUrl + hash, '_blank', 'noopener');
   };
 
   return (
-    <div className="w-full flex flex-col bg-[#fdfbf7] rounded-2xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.3)] transition-all duration-300 focus-within:shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
+    <div
+      className="w-full flex flex-col rounded-2xl overflow-hidden transition-all duration-500"
+      style={{
+        background: '#fdfbf7',
+        border: `1.5px solid ${accentBorder}`,
+        boxShadow: `0 0 0 1px ${toRgba(accentColor, 0.08)}, 0 8px 40px ${toRgba(accentColor, 0.15)}, 0 2px 8px rgba(0,0,0,0.25)`,
+      }}
+    >
+      {/* Accent top bar */}
+      <div
+        className="h-[3px] w-full"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
+          opacity: 0.8,
+        }}
+      />
 
-      <div className="flex justify-between items-center px-8 py-6">
-        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">
+      {/* Header row */}
+      <div className="flex justify-between items-center px-7 pt-5 pb-3">
+        <span
+          className="text-[9px] font-black uppercase tracking-[0.35em]"
+          style={{ color: toRgba(accentColor, 0.7) }}
+        >
           My Entry
         </span>
-        <StarRatingInput rating={rating} setRating={setRating} />
+        <StarRatingInput rating={rating} setRating={setRating} accentColor={accentColor} />
       </div>
 
+      {/* Divider */}
+      <div className="mx-7 mb-3" style={{ height: '1px', background: `linear-gradient(90deg, ${accentBorder}, transparent)` }} />
+
+      {/* Textarea */}
       <textarea
         ref={textareaRef}
         value={reviewText}
         onChange={e => setReviewText(e.target.value)}
-        className="w-full bg-transparent text-gray-800 placeholder-gray-300 px-8 pb-2 text-sm md:text-base leading-relaxed resize-none outline-none min-h-[140px]"
+        className="w-full bg-transparent px-7 pb-3 text-sm leading-relaxed resize-none outline-none min-h-[130px] font-medium"
         placeholder="What makes this record stand out?"
+        style={{ color: '#2c2825', caretColor: accentColor }}
       />
 
-      <div className="px-8 pb-8 flex flex-wrap gap-2">
+      {/* Mood tags */}
+      <div className="px-7 pb-6 flex flex-wrap gap-2">
         {MOOD_TAGS.map(tag => {
           const isActive = activeTags.includes(tag);
           return (
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all duration-200 ${
+              className="px-3 py-1.5 rounded-full text-[8.5px] font-black uppercase tracking-widest transition-all duration-200"
+              style={
                 isActive
-                  ? 'bg-[#c9a96e] text-white shadow-md'
-                  : 'bg-white text-gray-400 hover:bg-gray-100 hover:text-gray-600 shadow-sm'
-              }`}
+                  ? {
+                      background: accentSoft,
+                      color: accentColor,
+                      border: `1px solid ${accentBorder}`,
+                      boxShadow: `0 0 8px ${accentGlow}`,
+                    }
+                  : {
+                      background: 'rgba(44,40,37,0.05)',
+                      color: '#9c948a',
+                      border: '1px solid rgba(44,40,37,0.1)',
+                    }
+              }
             >
               {tag}
             </button>
@@ -144,18 +189,27 @@ const MyReviewInput = ({ album }) => {
         })}
       </div>
 
-      <div className="flex justify-between items-center px-8 py-5 border-t border-gray-100/50">
-        <span className={`text-[10px] font-medium tracking-wide ${reviewText.length > 0 ? 'text-gray-500' : 'text-gray-300'}`}>
-          {reviewText.length > 0 ? `${reviewText.length} characters` : 'Saved locally'}
+      {/* Footer */}
+      <div
+        className="flex justify-between items-center px-7 py-4"
+        style={{ borderTop: `1px solid ${toRgba(accentColor, 0.12)}` }}
+      >
+        <span className="text-[9px] font-medium tracking-wide" style={{ color: reviewText.length > 0 ? '#9c948a' : '#c4bdb7' }}>
+          {reviewText.length > 0 ? `${reviewText.length} chars` : 'Saved locally'}
         </span>
 
         <button
           onClick={handleSave}
-          className={`px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 flex items-center gap-2 ${
+          className="px-7 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.25em] transition-all duration-300 flex items-center gap-2"
+          style={
             saved
-              ? 'bg-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.3)]'
-              : 'bg-gray-900 text-white hover:bg-gray-800 hover:scale-105 shadow-md'
-          }`}
+              ? { background: '#22c55e', color: '#fff', boxShadow: '0 0 16px rgba(34,197,94,0.35)' }
+              : {
+                  background: accentColor,
+                  color: '#fdfbf7',
+                  boxShadow: `0 2px 16px ${toRgba(accentColor, 0.45)}`,
+                }
+          }
         >
           {saved && (
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +219,6 @@ const MyReviewInput = ({ album }) => {
           {saved ? 'Saved' : 'Save Draft'}
         </button>
       </div>
-
     </div>
   );
 };
